@@ -11,6 +11,7 @@
   "sections": {
     "tisso_header_D9xjHW": {
       "type": "tisso-header",
+      "custom_css": [],
       "name": "Tisso Header",
       "settings": {
         "logo_text": "TISSO VISON",
@@ -127,7 +128,9 @@
       ],
       "custom_css": [
         ".page-width {padding: 0px 60px;}",
-        "@media (max-width: 768px) {.page-width {padding: 0px 15px; }}"
+        "@media (max-width: 768px) {.page-width {padding: 0px 15px; }}",
+        "@media (max-width: 768px) {.shoppable-grid-title {text-align: center; }}",
+        "h2.shoppable-grid-title {font-family: Lustria;}"
       ],
       "name": "Shoppable Product Grid",
       "settings": {
