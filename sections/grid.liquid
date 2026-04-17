@@ -1,0 +1,203 @@
+<section class="shoppable-grid-section section-{{ section.id }}">
+  <div class="page-width">
+    {% if section.settings.title != blank %}
+      <h2 class="shoppable-grid-title">{{ section.settings.title }}</h2>
+    {% endif %}
+
+    <div class="shoppable-grid">
+      {% for block in section.blocks %}
+        {% assign product = all_products[block.settings.product] %}
+        {% if product != blank %}
+          <div class="grid-item" {{ block.shopify_attributes }}>
+            <div class="image-wrapper">
+              <img src="{{ product.featured_image | img_url: '800x800', crop: 'center' }}" alt="{{ product.title }}" loading="lazy">
+              <button class="hotspot-trigger" 
+                data-product-handle="{{ product.handle }}" 
+                data-c1="{{ block.settings.color_1 | escape }}"
+                data-c2="{{ block.settings.color_2 | escape }}"
+                style="top: {{ block.settings.hotspot_y }}%; left: {{ block.settings.hotspot_x }}%;">
+                <span>+</span>
+              </button>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="product-modal-{{ section.id }}" class="shoppable-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content-container">
+      <button class="modal-close">&times;</button>
+      <div id="modal-ajax-content-{{ section.id }}"></div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .shoppable-grid-section { padding: 40px 0; background: #fff; font-family: sans-serif; }
+  .shoppable-grid-title { text-align: center; font-size: 24px; margin-bottom: 30px; }
+  .shoppable-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+  .grid-item .image-wrapper { position: relative; aspect-ratio: 1/1; }
+  .grid-item img { width: 100%; height: 100%; object-fit: cover; }
+
+  .hotspot-trigger {
+    position: absolute; transform: translate(-50%, -50%);
+    background: #fff; border: none; border-radius: 50%; width: 30px; height: 30px;
+    cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 5;
+  }
+
+  /* --- Modal Styles --- */
+  .shoppable-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 9999; align-items: center; justify-content: center; }
+  .modal-overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.4); }
+  .modal-content-container { position: relative; background: #fff; width: 90%; max-width: 420px; padding: 30px 25px; z-index: 10; }
+  .modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 28px; cursor: pointer; }
+
+  .modal-top-row { display: flex; gap: 20px; margin-bottom: 20px; }
+  .modal-top-row img { width: 120px; height: 150px; object-fit: cover; }
+  .modal-title { font-size: 20px; margin: 0 0 10px; font-weight: 400; }
+  .modal-price { font-size: 18px; margin-bottom: 15px; }
+  .modal-desc { font-size: 13px; color: #666; line-height: 1.4; }
+
+  .variant-label { display: block; margin: 20px 0 10px; font-size: 15px; color: #333; }
+
+  /* Color Box Design */
+  .color-pills-container { display: flex; border: 1px solid #000; margin-bottom: 20px; }
+  .color-pill {
+    flex: 1; padding: 15px; cursor: pointer; border-right: 1px solid #000;
+    font-size: 16px; position: relative; background: #fff; transition: 0.2s;
+  }
+  .color-pill:last-child { border-right: none; }
+  
+  /* Active state with colored side bar */
+  .color-pill.active { background: #fff; font-weight: bold; }
+  .color-pill.active::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    background-color: var(--swatch-color, #000);
+  }
+
+  /* Size Dropdown */
+  .size-select-wrapper { position: relative; border: 1px solid #000; display: flex; height: 50px; }
+  .modal-dropdown { width: 100%; padding: 0 15px; border: none; background: transparent; font-size: 15px; appearance: none; outline: none; }
+  .select-arrow { width: 50px; display: flex; align-items: center; justify-content: center; border-left: 1px solid #000; pointer-events: none; }
+
+  /* ATC Button */
+  .btn-atc-main {
+    width: 100%; background: #000; color: #fff; border: none; padding: 18px;
+    margin-top: 30px; display: flex; justify-content: center; align-items: center;
+    gap: 20px; font-size: 16px; cursor: pointer; letter-spacing: 1px;
+  }
+
+  @media (max-width: 767px) { .shoppable-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('product-modal-{{ section.id }}');
+  const container = document.getElementById('modal-ajax-content-{{ section.id }}');
+
+  // কালার নাম অনুযায়ী হেক্স কোড ম্যাপ
+  const getColorHex = (c) => {
+    const map = { 'blue': '#003087', 'black': '#000', 'white': '#eee', 'grey': '#8e8e8e', 'red': '#a51c30', 'orange': '#ff6700' };
+    return map[c.toLowerCase().trim()] || '#000';
+  };
+
+  const closeModal = () => { modal.style.display = 'none'; document.body.style.overflow = ''; };
+  modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+  modal.querySelector('.modal-close').addEventListener('click', closeModal);
+
+  document.querySelectorAll('.hotspot-trigger').forEach(trigger => {
+    trigger.addEventListener('click', async () => {
+      const handle = trigger.dataset.productHandle;
+      const schemaColors = [trigger.dataset.c1, trigger.dataset.c2].filter(c => c);
+
+      const res = await fetch(`/products/${handle}.js`);
+      const product = await res.json();
+      
+      let optionsHtml = '';
+      product.options.forEach((option, idx) => {
+        const isColor = option.name.toLowerCase().includes('color');
+        if (isColor) {
+          optionsHtml += `<label class="variant-label">${option.name}</label>
+            <div class="color-pills-container" data-opt="option${idx+1}">
+              ${schemaColors.map((val, i) => `
+                <div class="color-pill ${i===0?'active':''}" data-value="${val}" style="--swatch-color: ${getColorHex(val)};">
+                  ${val}
+                </div>`).join('')}
+            </div>`;
+        } else {
+          optionsHtml += `<label class="variant-label">${option.name}</label>
+            <div class="size-select-wrapper">
+              <select class="modal-dropdown" data-opt="option${idx+1}">
+                <option value="" disabled selected>Choose your size</option>
+                ${option.values.map(v => `<option value="${v}">${v}</option>`).join('')}
+              </select>
+              <div class="select-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+            </div>`;
+        }
+      });
+
+      container.innerHTML = `
+        <div class="modal-top-row">
+          <img src="${product.featured_image}" class="modal-main-img">
+          <div>
+            <h3 class="modal-title">${product.title}</h3>
+            <div class="modal-price">${(product.price/100).toFixed(2).replace('.', ',')}€</div>
+            <p class="modal-desc">This one-piece swimsuit is crafted from jersey featuring an allover micro Monogram motif in relief.</p>
+          </div>
+        </div>
+        ${optionsHtml}
+        <button class="btn-atc-main" id="atc-btn">ADD TO CART <span>⟶</span></button>
+      `;
+
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+
+      // কালার সিলেকশন লজিক
+      container.querySelectorAll('.color-pill').forEach(p => {
+        p.addEventListener('click', function() {
+          this.parentElement.querySelectorAll('.color-pill').forEach(x => x.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+
+      document.getElementById('atc-btn').addEventListener('click', () => {
+        const selected = {};
+        container.querySelectorAll('[data-opt]').forEach(el => {
+          selected[el.dataset.opt] = el.classList.contains('color-pills-container') ? el.querySelector('.active').dataset.value : el.value;
+        });
+        const variant = product.variants.find(v => Object.keys(selected).every(k => v[k] === selected[k]));
+        if(!variant) return alert('Select options first');
+        fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: [{ id: variant.id, quantity: 1 }] })
+        }).then(() => window.location.href = '/cart');
+      });
+    });
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "Shoppable Grid Updated",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Heading", "default": "Shop the Look" }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Product",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Select Product" },
+        { "type": "text", "id": "color_1", "label": "First Color Name (e.g. White)", "default": "Blue" },
+        { "type": "text", "id": "color_2", "label": "Second Color Name (e.g. Black)", "default": "Black" },
+        { "type": "range", "id": "hotspot_x", "min": 5, "max": 95, "unit": "%", "label": "Hotspot X", "default": 50 },
+        { "type": "range", "id": "hotspot_y", "min": 5, "max": 95, "unit": "%", "label": "Hotspot Y", "default": 50 }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Shoppable Grid Updated" }]
+}
+{% endschema %}

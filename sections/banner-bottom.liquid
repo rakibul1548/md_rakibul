@@ -1,0 +1,52 @@
+<div class="banner-bottom">
+  <div class="banner-bottom__content">
+    <p class="banner-bottom__text">
+      SUSTAINABLE, ETHICALLY MADE CLOTHES IN SIZES XXS TO 6XL
+    </p>
+  </div>
+</div>
+
+{%- style -%}
+  .banner-bottom {
+    background: #ffffff;
+    padding: 40px 20px;           
+    text-align: center;
+  }
+
+  .banner-bottom__content {
+    max-width: 1000px;           
+    margin: 0 auto;
+    width: 100%;                  
+  }
+
+  .banner-bottom__text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #000000;
+    line-height: 1.2;
+    margin: 0;           
+
+  
+  @media screen and (min-width: 750px) {
+    .banner-bottom {
+      padding: 40px 40px;
+    }
+    
+    .banner-bottom__text {
+      font-size: 20px;
+    }
+  }
+{%- endstyle -%}
+
+{% schema %}
+{
+  "name": "Banner bottom",
+  "tag": "section",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Banner bottom"
+    }
+  ]
+}
+{% endschema %}
