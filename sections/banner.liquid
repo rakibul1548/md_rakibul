@@ -1,0 +1,230 @@
+<section class="shoppable-grid-section section-{{ section.id }}">
+  <div class="page-width">
+    {% if section.settings.title != blank %}
+      <h2 class="shoppable-grid-title">{{ section.settings.title }}</h2>
+    {% endif %}
+
+    <div class="shoppable-grid">
+      {% for block in section.blocks %}
+        <div class="grid-item" {{ block.shopify_attributes }}>
+          <div class="image-wrapper">
+            {% if block.settings.spotlight_image != blank %}
+              <img src="{{ block.settings.spotlight_image | img_url: '800x800', crop: 'center' }}" alt="Spotlight Image">
+            {% else %}
+              {{ 'product-1' | placeholder_svg_tag }}
+            {% endif %}
+            
+            <button class="hotspot-trigger" 
+              data-title="{{ block.settings.custom_title }}"
+              data-price="{{ block.settings.custom_price }}"
+              data-desc="{{ block.settings.custom_desc }}"
+              data-img="{{ block.settings.spotlight_image | img_url: '400x400' }}"
+              data-color1="{{ block.settings.color_1 }}"
+              data-color2="{{ block.settings.color_2 }}"
+              aria-label="Quick View">
+              <span>+</span>
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="product-modal-{{ section.id }}" class="shoppable-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content-container">
+      <button class="modal-close">&times;</button>
+      <div id="modal-ajax-content-{{ section.id }}">
+        </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .shoppable-grid-section { padding: 50px 0; background: #fff; }
+  .shoppable-grid-title { font-family: serif; font-size: 2rem; margin-bottom: 30px; text-align: center; }
+  
+  .shoppable-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+  }
+
+  .grid-item .image-wrapper { position: relative; aspect-ratio: 1 / 1; overflow: hidden; }
+  .grid-item img { width: 100%; height: 100%; object-fit: cover; }
+
+  .hotspot-trigger {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.9); border: none; border-radius: 50%;
+    width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: 0.3s;
+  }
+
+  /* Modal Styling matching your Image */
+  .shoppable-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; z-index: 9999; align-items: center; justify-content: center;
+  }
+  .modal-overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+  
+  .modal-content-container {
+    position: relative; background: #fff; width: 90%; max-width: 400px;
+    padding: 30px; z-index: 10; border-radius: 2px;
+  }
+
+  .modal-close {
+    position: absolute; top: 10px; right: 15px;
+    background: none; border: none; font-size: 24px; cursor: pointer; color: #000;
+  }
+
+  .modal-inner img { width: 100%; max-height: 250px; object-fit: cover; margin-bottom: 20px; }
+  .modal-title { font-family: 'Assistant', sans-serif; font-size: 22px; font-weight: 300; margin: 0; color: #333; }
+  .modal-price { font-size: 20px; margin: 10px 0; color: #000; }
+  .modal-desc { font-size: 14px; color: #444; line-height: 1.5; margin-bottom: 20px; }
+  
+  .color-label { font-size: 14px; margin-bottom: 8px; display: block; }
+  .color-options { display: flex; border: 1px solid #000; margin-bottom: 20px; }
+  .color-opt { 
+    flex: 1; padding: 12px; text-align: center; cursor: pointer; font-size: 16px; border-right: 1px solid #000;
+  }
+  .color-opt:last-child { border-right: none; }
+  .color-opt.active { background: #000; color: #fff; }
+
+  .size-label { font-size: 14px; margin-bottom: 8px; display: block; }
+  .size-dropdown { 
+    width: 100%; padding: 12px; border: 1px solid #ccc; appearance: none;
+    background: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M5 7l5 5 5-5" fill="none" stroke="black" stroke-width="2"/></svg>') no-repeat right 10px center;
+  }
+
+  .btn-atc-main {
+    width: 100%; background: #000; color: #fff; border: none; padding: 18px;
+    margin-top: 30px; display: flex; justify-content: space-between; align-items: center;
+    font-size: 16px; letter-spacing: 1px; cursor: pointer;
+  }
+
+  @media (max-width: 768px) { .shoppable-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('product-modal-{{ section.id }}');
+  const container = document.getElementById('modal-ajax-content-{{ section.id }}');
+  const closeBtn = modal.querySelector('.modal-close');
+  const overlay = modal.querySelector('.modal-overlay');
+
+  document.querySelectorAll('.hotspot-trigger').forEach(trigger => {
+    trigger.addEventListener('click', function() {
+      const data = this.dataset;
+      
+      container.innerHTML = `
+        <div class="modal-inner">
+          <img src="${data.img}" alt="${data.title}">
+          <h3 class="modal-title">${data.title}</h3>
+          <div class="modal-price">${data.price}</div>
+          <div class="modal-desc">${data.desc}</div>
+          
+          <span class="color-label">Color</span>
+          <div class="color-options">
+            <div class="color-opt active">${data.color1}</div>
+            <div class="color-opt">${data.color2}</div>
+          </div>
+
+          <span class="size-label">Size</span>
+          <select class="size-dropdown">
+            <option>Choose your size</option>
+            <option>Small</option>
+            <option>Medium</option>
+            <option>Large</option>
+          </select>
+
+          <button class="btn-atc-main">
+            ADD TO CART <span>&rarr;</span>
+          </button>
+        </div>
+      `;
+      
+      modal.style.display = 'flex';
+      
+      // Color selection toggle logic
+      const opts = container.querySelectorAll('.color-opt');
+      opts.forEach(opt => {
+        opt.addEventListener('click', () => {
+          opts.forEach(o => o.classList.remove('active'));
+          opt.classList.add('active');
+        });
+      });
+    });
+  });
+
+  const closeModal = () => { modal.style.display = 'none'; };
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', closeModal);
+});
+</script>
+
+{% schema %}
+{
+  "name": "Shoppable Product Grid",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Section Heading",
+      "default": "Tisso vison in the wild"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "product_spotlight",
+      "name": "Spotlight Item",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "spotlight_image",
+          "label": "Grid Image"
+        },
+        {
+          "type": "text",
+          "id": "custom_title",
+          "label": "Product Title",
+          "default": "Tailored Jacket"
+        },
+        {
+          "type": "text",
+          "id": "custom_price",
+          "label": "Price",
+          "default": "980,00€"
+        },
+        {
+          "type": "textarea",
+          "id": "custom_desc",
+          "label": "Description",
+          "default": "This one-piece swimsuit is crafted from jersey featuring an allover micro Monogram motif in relief."
+        },
+        {
+          "type": "text",
+          "id": "color_1",
+          "label": "Color Option 1",
+          "default": "Blue"
+        },
+        {
+          "type": "text",
+          "id": "color_2",
+          "label": "Color Option 2",
+          "default": "Black"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Shoppable Product Grid",
+      "blocks": [
+        { "type": "product_spotlight" },
+        { "type": "product_spotlight" },
+        { "type": "product_spotlight" }
+      ]
+    }
+  ]
+}
+{% endschema %}
