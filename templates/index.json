@@ -129,6 +129,7 @@
       "custom_css": [
         ".page-width {padding: 0px 60px;}",
         "@media (max-width: 768px) {.page-width {padding: 0px 15px; }}",
+        ".shoppable-grid-title {text-align: left;}",
         "@media (max-width: 768px) {.shoppable-grid-title {text-align: center; }}",
         "h2.shoppable-grid-title {font-family: Lustria;}"
       ],
