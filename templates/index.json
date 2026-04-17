@@ -21,6 +21,9 @@
     },
     "main_banner_RBepwx": {
       "type": "main-banner",
+      "custom_css": [
+        ".content {position: relative; z-index: 2; padding: 122px 0vw 0px 4vw; max-width: 600px;}"
+      ],
       "name": "Banner",
       "settings": {
         "image_position": "center center",
