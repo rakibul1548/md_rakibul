@@ -125,6 +125,10 @@
         "product_gXwyGq",
         "product_pfb8cE"
       ],
+      "custom_css": [
+        ".page-width {padding: 0px 60px;}",
+        "@media (max-width: 768px) {.page-width {padding: 0px 15px; }}"
+      ],
       "name": "Shoppable Product Grid",
       "settings": {
         "title": "Tisso vison in the wild"
